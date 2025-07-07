@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>センシン Confluence AIアシスタント</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #0052cc, #0065ff);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bot-avatar {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-info h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-info p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .bot-message-avatar {
+            background: #0052cc;
+            color: white;
+        }
+
+        .user-message-avatar {
+            background: #36b37e;
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+
+        .user .message-content {
+            background: #0052cc;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot .message-content {
+            background: white;
+            border: 1px solid #e3e6ea;
+            border-bottom-left-radius: 4px;
+        }
+
+        .confluence-result {
+            background: #f4f5f7;
+            border: 1px solid #dfe1e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            transition: all 0.2s ease;
+        }
+
+        .confluence-result:hover {
+            border-color: #0052cc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #0052cc;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: #6b778c;
+            margin-bottom: 8px;
+        }
+
+        .result-snippet {
+            font-size: 14px;
+            color: #42526e;
+            line-height: 1.4;
+        }
+
+        .highlight {
+            background: #fff2cc;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e3e6ea;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 2px solid #e3e6ea;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s ease;
+            max-height: 100px;
+        }
+
+        .chat-input:focus {
+            border-color: #0052cc;
+        }
+
+        .send-button {
+            background: #0052cc;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .send-button:hover {
+            background: #0065ff;
+        }
+
+        .send-button:disabled {
+            background: #dfe1e6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 15px 20px;
+            background: white;
+            border: 1px solid #e3e6ea;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #6b778c;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        .suggestions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-chip {
+            background: #f4f5f7;
+            border: 1px solid #dfe1e6;
+            border-radius: 16px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-chip:hover {
+            background: #e6f2ff;
+            border-color: #0052cc;
+            color: #0052cc;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="bot-avatar">🤖</div>
+            <div class="header-info">
+                <h1>センシン Confluence AIアシスタント</h1>
+                <p>センシンの社内Confluenceスペースから情報を検索・発見</p>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- Bot Welcome Message -->
+            <div class="message bot">
+                <div class="message-avatar bot-message-avatar">AI</div>
+                <div class="message-content">
+                    <p>👋 こんにちは！センシンのConfluence AIアシスタントです。社内のすべてのConfluenceスペースから情報を検索してお手伝いします。以下のようなことをお聞きください：</p>
+                    <div class="suggestions">
+                        <div class="suggestion-chip" onclick="sendMessage('ドローン技術文書')">ドローン技術文書</div>
+                        <div class="suggestion-chip" onclick="sendMessage('プロジェクト計画')">プロジェクト計画</div>
+                        <div class="suggestion-chip" onclick="sendMessage('作業手順書')">作業手順書</div>
+                        <div class="suggestion-chip" onclick="sendMessage('会議議事録')">会議議事録</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Message -->
+            <div class="message user">
+                <div class="message-avatar user-message-avatar">U</div>
+                <div class="message-content">
+                    ドローンの自動飛行システムのAPI認証方法について教えてください
+                </div>
+            </div>
+
+            <!-- Bot Response with Search Results -->
+            <div class="message bot">
+                <div class="message-avatar bot-message-avatar">AI</div>
+                <div class="message-content">
+                    <p>センシンのConfluenceスペースから、ドローン自動飛行システムのAPI認証に関連する文書を見つけました：</p>
+                    
+                    <div class="confluence-result">
+                        <div class="result-title">ドローン飛行制御API認証ガイド</div>
+                        <div class="result-meta">技術開発部 • 2日前に更新 • API技術文書</div>
+                        <div class="result-snippet">
+                            センシンのドローン自動飛行システムで使用する<span class="highlight">OAuth 2.0</span>、<span class="highlight">JWTトークン</span>、および<span class="highlight">APIキー認証</span>の完全ガイド。各種プログラミング言語でのコード例も含む...
+                        </div>
+                    </div>
+
+                    <div class="confluence-result">
+                        <div class="result-title">ドローンAPI セキュリティベストプラクティス</div>
+                        <div class="result-meta">セキュリティ部門 • 1週間前に更新 • セキュリティガイドライン</div>
+                        <div class="result-snippet">
+                            ドローン制御APIでの<span class="highlight">認証</span>と認可実装のセキュリティガイドライン。トークン管理、レート制限、セキュリティヘッダーについて説明...
+                        </div>
+                    </div>
+
+                    <div class="confluence-result">
+                        <div class="result-title">センシンドローンシステム統合事例</div>
+                        <div class="result-meta">開発チーム • 3日前に更新 • 実装事例</div>
+                        <div class="result-snippet">
+                            センシンの<span class="highlight">ドローン制御API</span>を使用した実装例。Postmanコレクションとcurlコマンドの使用方法を含む...
+                        </div>
+                    </div>
+
+                    <p>より具体的な情報が必要でしたら、詳細な実装方法についてお聞きください。</p>
+                </div>
+            </div>
+
+            <!-- User Follow-up -->
+            <div class="message user">
+                <div class="message-avatar user-message-avatar">U</div>
+                <div class="message-content">
+                    JWTトークンの実装詳細を教えてください
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator">
+                <div class="message-avatar bot-message-avatar">AI</div>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="messageInput" 
+                    placeholder="センシンのConfluenceコンテンツについて何でもお聞きください..."
+                    rows="1"
+                    onkeypress="handleKeyPress(event)"
+                ></textarea>
+                <button class="send-button" onclick="sendUserMessage()" id="sendButton">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendUserMessage();
+            }
+        }
+
+        function sendUserMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                sendMessage(message);
+                input.value = '';
+            }
+        }
+
+        function sendMessage(message) {
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            // Remove typing indicator
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+            
+            // Add user message
+            const userMessage = createUserMessage(message);
+            messagesContainer.appendChild(userMessage);
+            
+            // Add typing indicator
+            const newTypingIndicator = createTypingIndicator();
+            messagesContainer.appendChild(newTypingIndicator);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Simulate bot response after delay
+            setTimeout(() => {
+                const typingToRemove = document.querySelector('.typing-indicator');
+                if (typingToRemove) {
+                    typingToRemove.remove();
+                }
+                
+                const botMessage = createBotResponse(message);
+                messagesContainer.appendChild(botMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 2000);
+        }
+
+        function createUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-avatar user-message-avatar">U</div>
+                <div class="message-content">${message}</div>
+            `;
+            return messageDiv;
+        }
+
+        function createBotResponse(userMessage) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            
+            // Simple response generation based on keywords
+            let response = "センシンのConfluenceスペースで関連情報を検索しています...";
+            
+            if (userMessage.toLowerCase().includes('api') || userMessage.toLowerCase().includes('ドローン') || userMessage.toLowerCase().includes('認証')) {
+                response = `センシンのConfluenceでAPI関連の文書を見つけました。具体的な実装詳細や他のご質問がございましたらお聞かせください！`;
+            } else if (userMessage.toLowerCase().includes('project') || userMessage.toLowerCase().includes('プロジェクト')) {
+                response = `プロジェクト関連のページを見つけました。より具体的な内容について検索しますか？`;
+            } else if (userMessage.toLowerCase().includes('team') || userMessage.toLowerCase().includes('チーム') || userMessage.toLowerCase().includes('作業')) {
+                response = `チーム文書と作業プロセスを見つけました。どの分野について詳しく知りたいですか？`;
+            } else if (userMessage.toLowerCase().includes('ドローン')) {
+                response = `センシンのドローン技術に関する文書を検索しました。飛行制御、センサー、自動化システムなど、どの分野についてお調べしますか？`;
+            } else if (userMessage.toLowerCase().includes('jwt') || userMessage.toLowerCase().includes('トークン')) {
+                response = `JWTトークンの実装について、センシンのドローンシステム用の詳細情報を見つけました。セキュリティ仕様と実装例をご確認いただけます。`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar bot-message-avatar">AI</div>
+                <div class="message-content">${response}</div>
+            `;
+            return messageDiv;
+        }
+
+        function createTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar bot-message-avatar">AI</div>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            return typingDiv;
+        }
+
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+    </script>
+</body>
+</html>
+
